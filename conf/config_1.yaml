@@ -1,0 +1,55 @@
+hydra:
+  run:
+    dir: ${outputDir}
+  sweep:
+    dir: ${outputDir}
+    subdir: ${hydra.job.override_dirname}
+  job:
+    config:
+      override_dirname:
+        exclude_keys:
+          - outputDir
+          - datasetPath
+          - wandb.enabled
+          - wandb.setup.project
+          - wandb.setup.entity
+          - wandb.setup.group
+
+defaults:
+  - wandb: defaults
+          
+outputDir: /home/<user>/speech_BCI_torch/speech_logs/speechBaseline4
+datasetPath: /home/<user>/speech_BCI_torch/data/ptDecoder_ctc
+
+seqLen: 150 
+
+seed: 0
+batchSize: 128 
+lrStart: 0.1
+lrEnd: 0.1
+l2_decay: 1e-5
+nBatch: 10000
+
+whiteNoiseSD: 0.8
+constantOffsetSD: 0.2
+gaussianSmoothWidth: 2.0
+
+nUnits: 1024
+nLayers: 5
+nInputFeatures: 256
+nClasses: 40
+dropout: 0.4
+strideLen: 4
+kernelLen: 32
+bidirectional: True
+momentum: 0.9
+nesterov: False
+stepSize: 4000
+gamma: 0.1
+
+numWorkers: 10
+
+# lightning
+accelerator: gpu
+devices: -1  # use all the available GPUs
+precision: 32
