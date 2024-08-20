@@ -10,8 +10,8 @@ import torch
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(SCRIPT_DIR))
 # local module
-from src.neural_decoder_lightning.dataset import SpeechDataset
-from src.neural_decoder_lightning.neural_decoder_trainer import loadModel
+from neural_decoder.dataset import SpeechDataset
+from neural_decoder_trainer import loadModel
 import NeuralDecoder.neuralDecoder.utils.lmDecoderUtils as lmDecoderUtils
 
 parser = argparse.ArgumentParser(description="")
