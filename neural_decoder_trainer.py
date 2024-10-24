@@ -87,7 +87,7 @@ def trainModel(args):
         strategy=DDPStrategy(find_unused_parameters=True),
         logger=logger,
         min_steps=1,
-        max_steps=10000,
+        max_steps=args.nBatch,
         accelerator=args["accelerator"],
         devices=args["devices"],
         precision=args["precision"],
