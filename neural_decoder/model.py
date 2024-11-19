@@ -16,19 +16,19 @@ class GRUDecoder(pl.LightningModule):
         nDays,
         dropout,
         strideLen,
-        kernelLen, 
+        kernelLen,
         gaussianSmoothWidth,
-        whiteNoiseSD, 
-        constantOffsetSD, 
+        whiteNoiseSD,
+        constantOffsetSD,
         bidirectional,
-        l2_decay, 
-        lrStart, 
-        lrEnd, 
+        l2_decay,
+        lrStart,
+        lrEnd,
         momentum,
         nesterov,
         gamma,
         stepSize,
-        nBatch, 
+        nBatch,
         output_dir,
     ):
         super().__init__()
@@ -51,11 +51,13 @@ class GRUDecoder(pl.LightningModule):
         self.gaussianSmoother = GaussianSmoothing(
             neural_dim, 20, self.gaussianSmoothWidth, dim=1
         )
-        self.dayWeights = torch.nn.Parameter(torch.randn(nDays, neural_dim, neural_dim))
+        self.dayWeights = torch.nn.Parameter(
+            torch.randn(nDays, neural_dim, neural_dim))
         self.dayBias = torch.nn.Parameter(torch.zeros(nDays, 1, neural_dim))
         self.constantOffsetSD = constantOffsetSD
         self.whiteNoiseSD = whiteNoiseSD
-        self.loss_ctc = torch.nn.CTCLoss(blank=0, reduction="mean", zero_infinity=True)
+        self.loss_ctc = torch.nn.CTCLoss(
+            blank=0, reduction="mean", zero_infinity=True)
         self.l2_decay = l2_decay
         self.lrStart = lrStart
         self.lrEnd = lrEnd
@@ -89,7 +91,9 @@ class GRUDecoder(pl.LightningModule):
 
         # Input layers
         for x in range(nDays):
-            setattr(self, "inpLayer" + str(x), nn.Linear(neural_dim, neural_dim))
+            setattr(
+                self, "inpLayer" + str(x),
+                nn.Linear(neural_dim, neural_dim))
 
         for x in range(nDays):
             thisLayer = getattr(self, "inpLayer" + str(x))
@@ -103,7 +107,8 @@ class GRUDecoder(pl.LightningModule):
                 hidden_dim * 2, n_classes + 1
             )  # +1 for CTC blank
         else:
-            self.fc_decoder_out = nn.Linear(hidden_dim, n_classes + 1)  # +1 for CTC blank
+            self.fc_decoder_out = nn.Linear(
+                hidden_dim, n_classes + 1)  # +1 for CTC blank
 
     def forward(self, neuralInput, dayIdx):
         neuralInput = torch.permute(neuralInput, (0, 2, 1))
@@ -146,7 +151,7 @@ class GRUDecoder(pl.LightningModule):
         # get seq
         seq_out = self.fc_decoder_out(hid)
         return seq_out
-    
+
     def training_step(self, batch, batch_idx):
         X, y, X_len, y_len, dayIdx = batch
 
@@ -170,12 +175,14 @@ class GRUDecoder(pl.LightningModule):
         )
         loss = torch.sum(loss)
         schedulers = self.lr_schedulers()
-        schedulers.step()
         cur_lr = schedulers.optimizer.param_groups[-1]["lr"]
-        self.log_dict({"train/predictionLoss": loss, "train/learning_rate": cur_lr}, on_step=True, on_epoch=False, prog_bar=True, sync_dist=True, rank_zero_only=True)
-        return {"loss": loss, "pred": pred, "y":y}
-    
-    def validation_step(self, batch, batch_idx): 
+        self.log_dict(
+            {"train/predictionLoss": loss, "train/learning_rate": cur_lr},
+            on_step=True, on_epoch=False, prog_bar=True, sync_dist=True,
+            rank_zero_only=True)
+        return {"loss": loss, "pred": pred, "y": y}
+
+    def validation_step(self, batch, batch_idx):
         X, y, X_len, y_len, testDayIdx = batch
 
         total_edit_distance = 0
@@ -195,7 +202,7 @@ class GRUDecoder(pl.LightningModule):
         )
         for iterIdx in range(pred.shape[0]):
             decodedSeq = torch.argmax(
-                pred[iterIdx, 0 : adjustedLens[iterIdx], :].clone().detach(),
+                pred[iterIdx, 0: adjustedLens[iterIdx], :].clone().detach(),
                 dim=-1,
             )  # [num_seq,]
             decodedSeq = torch.unique_consecutive(decodedSeq, dim=-1)
@@ -203,7 +210,7 @@ class GRUDecoder(pl.LightningModule):
             decodedSeq = np.array([i for i in decodedSeq if i != 0])
 
             trueSeq = np.array(
-                y[iterIdx][0 : y_len[iterIdx]].cpu().detach()
+                y[iterIdx][0: y_len[iterIdx]].cpu().detach()
             )
 
             matcher = SequenceMatcher(
@@ -215,10 +222,10 @@ class GRUDecoder(pl.LightningModule):
         avgDayLoss = loss
         cer = total_edit_distance / total_seq_length
 
-        self.log_dict({"val/predictionLoss": avgDayLoss, "val/ser": cer}, sync_dist=True, prog_bar=True, rank_zero_only=True)
+        self.log_dict({"val/predictionLoss": avgDayLoss, "val/ser": cer},
+                      sync_dist=True, prog_bar=True, rank_zero_only=True)
 
-        return {"loss": loss, "pred": pred, "y":y}
-    
+        return {"loss": loss, "pred": pred, "y": y}
 
     def configure_optimizers(self):
 
@@ -236,4 +243,14 @@ class GRUDecoder(pl.LightningModule):
             gamma=self.gamma,
         )
 
-        return {"optimizer":optimizer, "lr_scheduler": scheduler}
+        freq = self.trainer.accumulate_grad_batches or 1
+
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler":
+            {
+                "scheduler": scheduler,
+                "interval": "step",
+                "freqeuncy": freq
+            }
+        }

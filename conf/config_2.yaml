@@ -28,7 +28,7 @@ batchSize: 128
 lrStart: 0.1
 lrEnd: 0.1
 l2_decay: 1e-5
-nBatch: 10000
+nSteps: 10000
 
 whiteNoiseSD: 0.8
 constantOffsetSD: 0.2
